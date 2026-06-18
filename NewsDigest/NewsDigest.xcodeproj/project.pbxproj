@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		7D6FF1AD2FE47D5A00A0B434 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 7D6FF1AC2FE47D5A00A0B434 /* Supabase */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		7D6FF1782FE474E700A0B434 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7D6FF1AD2FE47D5A00A0B434 /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +83,7 @@
 				7D6FF16C2FE474E500A0B434 /* NewsDigest */,
 				7D6FF17A2FE474E700A0B434 /* NewsDigestTests */,
 				7D6FF1842FE474E700A0B434 /* NewsDigestUITests */,
+				7D6FF1AB2FE47D4500A0B434 /* Frameworks */,
 				7D6FF16B2FE474E500A0B434 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -90,6 +96,13 @@
 				7D6FF1812FE474E700A0B434 /* NewsDigestUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		7D6FF1AB2FE47D4500A0B434 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -112,6 +125,7 @@
 			);
 			name = NewsDigest;
 			packageProductDependencies = (
+				7D6FF1AC2FE47D5A00A0B434 /* Supabase */,
 			);
 			productName = NewsDigest;
 			productReference = 7D6FF16A2FE474E500A0B434 /* NewsDigest.app */;
@@ -396,8 +410,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N4H973AZGP;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -410,8 +426,9 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.newsDigest.NewsDigest;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kisser.newsdigest;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -427,8 +444,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N4H973AZGP;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -441,8 +460,9 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.newsDigest.NewsDigest;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kisser.newsdigest;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -584,6 +604,14 @@
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		7D6FF1AC2FE47D5A00A0B434 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7D6FF1AA2FE476B300A0B434 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 7D6FF1622FE474E500A0B434 /* Project object */;
 }

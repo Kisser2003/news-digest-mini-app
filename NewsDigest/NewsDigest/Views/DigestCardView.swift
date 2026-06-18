@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// Карточка одного дайджеста. Вся поверхность кликабельна (разворачивает
-/// полный текст). Заголовок — жирный, excerpt — вторичным цветом в 2 строки.
+/// полный текст). В свёрнутом виде — превью 3 строки; в развёрнутом — полный
+/// текст с сохранением структуры (переносы блоков), крупным читаемым шрифтом.
 struct DigestCardView: View {
     let digest: Digest
     @State private var isExpanded = false
@@ -14,24 +15,22 @@ struct DigestCardView: View {
         VStack(alignment: .leading, spacing: 12) {
             header
 
-            Text(digest.title)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(.primary)
-                .lineLimit(isExpanded ? nil : 3)
-
             if isExpanded {
-                if !digest.excerpt.isEmpty {
-                    Text(digest.excerpt)
-                        .font(.system(size: 15))
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                Text(digest.content)
+                    .font(.system(size: 16))
+                    .lineSpacing(5)
+                    .foregroundStyle(.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
                 sources
-            } else if !digest.excerpt.isEmpty {
-                Text(digest.excerpt)
+            } else {
+                Text(digest.content)
                     .font(.system(size: 15))
+                    .lineSpacing(3)
                     .foregroundStyle(.secondary)
-                    .lineLimit(2)
+                    .lineLimit(3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             chevron
@@ -49,11 +48,11 @@ struct DigestCardView: View {
     private var header: some View {
         HStack(spacing: 10) {
             Image(systemName: digest.type.icon)
-                .font(.system(size: 15))
+                .font(.system(size: 16))
                 .foregroundStyle(.secondary)
 
             Text(dateText)
-                .font(.system(size: 15, weight: .semibold))
+                .font(.system(size: 16, weight: .semibold))
 
             Spacer(minLength: 8)
 
@@ -63,7 +62,7 @@ struct DigestCardView: View {
 
             ShareLink(item: digest.shareText(dateText: dateText)) {
                 Image(systemName: "square.and.arrow.up")
-                    .font(.system(size: 15))
+                    .font(.system(size: 16))
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)

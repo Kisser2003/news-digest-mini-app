@@ -43,24 +43,6 @@ struct Digest: Identifiable, Codable, Hashable {
 // MARK: - Производные представления для UI
 
 extension Digest {
-    /// Первая значимая строка — используется как заголовок карточки.
-    var title: String {
-        content
-            .split(separator: "\n", omittingEmptySubsequences: true)
-            .first
-            .map { String($0).trimmingCharacters(in: .whitespaces) }
-            ?? content
-    }
-
-    /// Остальной текст после заголовка — для превью (excerpt).
-    var excerpt: String {
-        let lines = content
-            .split(separator: "\n", omittingEmptySubsequences: true)
-            .dropFirst()
-            .map { String($0).trimmingCharacters(in: .whitespaces) }
-        return lines.joined(separator: " ")
-    }
-
     /// Текст для шаринга (заголовок + полное содержимое).
     func shareText(dateText: String) -> String {
         "\(dateText) · \(type.label) дайджест\n\n\(content)"
