@@ -1,0 +1,19 @@
+//
+//  NewsDigestTests.swift
+//  NewsDigestTests
+//
+//  Created by Андрей Киссер on 18.06.2026.
+//
+
+import Testing
+@testable import NewsDigest
+
+struct NewsDigestTests {
+
+    @Test func example() async throws {
+        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+        // Swift Testing Documentation
+        // https://developer.apple.com/documentation/testing
+    }
+
+}
