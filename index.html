@@ -38,12 +38,13 @@
     .header-glow {
       position: fixed;
       top: 0; left: 0; right: 0;
-      height: 220px;
+      height: 180px;
       z-index: 0;
       pointer-events: none;
-      background:
-        radial-gradient(ellipse 80% 60% at 20% 0%, rgba(46,166,255,0.28) 0%, transparent 70%),
-        radial-gradient(ellipse 70% 50% at 85% 0%, rgba(150,110,255,0.22) 0%, transparent 70%);
+      opacity: 0.5;
+      background: radial-gradient(ellipse 120% 100% at 50% 0%, var(--accent) 0%, transparent 65%);
+      -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.12), transparent);
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.12), transparent);
     }
 
     .feed {
@@ -83,18 +84,19 @@
     }
     .card:active { transform: scale(0.985); }
     .card.expanded {
-      box-shadow:
-        0 0 0 1px rgba(36,129,204,0.15),
-        0 4px 20px rgba(36,129,204,0.18),
-        0 0 40px rgba(36,129,204,0.1);
+      box-shadow: 0 6px 24px rgba(0,0,0,0.07);
     }
 
     .card-header {
       display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 8px;
-      margin-bottom: 9px;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .card-icon {
+      font-size: 17px;
+      line-height: 1;
+      flex-shrink: 0;
     }
     .card-time {
       font-size: 15px;
@@ -102,41 +104,11 @@
       letter-spacing: -0.2px;
     }
     .card-type {
-      font-size: 12px;
+      font-size: 13px;
       color: var(--hint);
+      margin-left: auto;
       white-space: nowrap;
       flex-shrink: 0;
-    }
-
-    .card-sources {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 10px;
-    }
-    .avatars {
-      display: flex;
-      padding-left: 6px;
-      flex-shrink: 0;
-    }
-    .avatar {
-      width: 24px; height: 24px;
-      border-radius: 50%;
-      margin-left: -6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 9px;
-      font-weight: 700;
-      color: #fff;
-      box-shadow: 0 0 0 2px var(--bg);
-    }
-    .sources-label {
-      font-size: 12px;
-      color: var(--hint);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
     }
 
     .card-preview {
@@ -156,10 +128,22 @@
     }
 
     .card-toggle {
-      margin-top: 10px;
+      margin-top: 12px;
       font-size: 14px;
       font-weight: 500;
       color: var(--link);
+    }
+
+    .card-sources {
+      margin-top: 12px;
+      padding-top: 11px;
+      border-top: 1px solid var(--secondary-bg);
+      font-size: 11px;
+      color: var(--hint);
+      letter-spacing: 0.1px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     /* Empty */
@@ -191,12 +175,7 @@
 
   <script>
     const API = 'https://kisser.app.n8n.cloud/webhook/digest-history';
-    const AV = [
-      { label: 'At', bg: '#e0564f' },
-      { label: 'VC', bg: '#3d8bdb' },
-      { label: 'QA', bg: '#1a9e8f' },
-      { label: 'Ap', bg: '#3a3a3c' }
-    ];
+    const SOURCES = '@Ateobreaking · @vcnews · @easy_qa_ru · @media_apple';
 
     let digests = [];
     let expanded = null;
@@ -226,6 +205,10 @@
       return t === 'morning' ? 'Утренний' : t === 'evening' ? 'Вечерний' : 'Дайджест';
     }
 
+    function typeIcon(t) {
+      return t === 'morning' ? '🌅' : t === 'evening' ? '🌙' : '📋';
+    }
+
     function renderSkeletons() {
       document.getElementById('feed').innerHTML = [0,1,2,3].map(() =>
         '<div class="skeleton-card">' +
@@ -252,10 +235,6 @@
           '<div class="empty-sub">Бот публикует дайджесты 2 раза в день</div>' +
         '</div>';
       } else {
-        const avHtml = AV.map(a =>
-          '<div class="avatar" style="background:' + a.bg + '">' + a.label + '</div>'
-        ).join('');
-
         digests.forEach(function(d, i) {
           const exp = expanded === i;
           const text = d.text || '';
@@ -265,18 +244,16 @@
           html +=
             '<div class="card' + (exp ? ' expanded' : '') + '" onclick="toggle(' + i + ')">' +
               '<div class="card-header">' +
+                '<span class="card-icon">' + typeIcon(d.type) + '</span>' +
                 '<span class="card-time">' + esc(formatTime(d.date)) + '</span>' +
                 '<span class="card-type">' + esc(typeLabel(d.type)) + '</span>' +
-              '</div>' +
-              '<div class="card-sources">' +
-                '<div class="avatars">' + avHtml + '</div>' +
-                '<span class="sources-label">@Ateobreaking · @vcnews · @easy_qa_ru · @media_apple</span>' +
               '</div>' +
               (exp
                 ? '<p class="card-full">' + esc(text) + '</p>'
                 : '<p class="card-preview">' + esc(preview) + '</p>'
               ) +
               '<div class="card-toggle">' + (exp ? 'Свернуть' : 'Читать полностью') + '</div>' +
+              (exp ? '<div class="card-sources">' + SOURCES + '</div>' : '') +
             '</div>';
         });
       }
