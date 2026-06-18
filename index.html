@@ -269,8 +269,11 @@
     /* ── Темы: auto → light → dark ── */
     var THEMES = ['auto', 'light', 'dark'];
     var THEME_ICON = { auto: '🌗', light: '☀️', dark: '🌙' };
+    var currentTheme = 'auto';
+    try { currentTheme = localStorage.getItem('digest-theme') || 'auto'; } catch(e) {}
 
     function applyTheme(mode) {
+      currentTheme = mode;
       var html = document.documentElement;
       if (mode === 'auto') html.removeAttribute('data-theme');
       else html.setAttribute('data-theme', mode);
@@ -279,17 +282,11 @@
     }
 
     function cycleTheme() {
-      var cur = 'auto';
-      try { cur = localStorage.getItem('digest-theme') || 'auto'; } catch(e) {}
-      var next = THEMES[(THEMES.indexOf(cur) + 1) % THEMES.length];
+      var next = THEMES[(THEMES.indexOf(currentTheme) + 1) % THEMES.length];
       applyTheme(next);
     }
 
-    (function initTheme() {
-      var saved = 'auto';
-      try { saved = localStorage.getItem('digest-theme') || 'auto'; } catch(e) {}
-      applyTheme(saved);
-    })();
+    applyTheme(currentTheme);
 
     function esc(s) {
       return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
