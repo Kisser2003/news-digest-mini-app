@@ -123,6 +123,23 @@
       white-space: nowrap;
       flex-shrink: 0;
     }
+    .card-share {
+      margin-left: 4px;
+      border: none;
+      background: transparent;
+      color: var(--hint);
+      cursor: pointer;
+      padding: 5px;
+      margin: -5px -5px -5px -1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      flex-shrink: 0;
+      transition: background 0.15s, color 0.15s;
+    }
+    .card-share:active { background: var(--secondary-bg); color: var(--accent); }
+    .card-share svg { width: 18px; height: 18px; display: block; }
 
     .card-preview {
       font-size: 15px;
@@ -140,12 +157,15 @@
       white-space: pre-line;
     }
 
-    .card-toggle {
+    .card-chevron {
       margin-top: 12px;
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--link);
+      display: flex;
+      justify-content: center;
+      color: var(--hint);
+      transition: transform 0.25s ease;
     }
+    .card.expanded .card-chevron { transform: rotate(180deg); }
+    .card-chevron svg { width: 18px; height: 18px; display: block; }
 
     .card-sources {
       margin-top: 12px;
@@ -189,6 +209,10 @@
   <script>
     const API = 'https://kisser.app.n8n.cloud/webhook/digest-history';
     const SOURCES = '@Ateobreaking · @vcnews · @easy_qa_ru · @media_apple';
+    const BOT_URL = 'https://t.me/Newskisser_bot';
+
+    const ICON_SHARE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>';
+    const ICON_CHEVRON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
 
     let digests = [];
     let expanded = null;
@@ -273,13 +297,14 @@
                 '<span class="card-icon">' + typeIcon(d.type) + '</span>' +
                 '<span class="card-time">' + esc(formatTime(d.date)) + '</span>' +
                 '<span class="card-type">' + esc(typeLabel(d.type)) + '</span>' +
+                '<button class="card-share" onclick="share(' + i + ', event)" aria-label="Поделиться">' + ICON_SHARE + '</button>' +
               '</div>' +
               (exp
                 ? '<p class="card-full">' + esc(text) + '</p>'
                 : '<p class="card-preview">' + esc(preview) + '</p>'
               ) +
-              '<div class="card-toggle">' + (exp ? 'Свернуть' : 'Читать полностью') + '</div>' +
               (exp ? '<div class="card-sources">' + SOURCES + '</div>' : '') +
+              '<div class="card-chevron">' + ICON_CHEVRON + '</div>' +
             '</div>';
         });
       }
@@ -290,6 +315,25 @@
     function toggle(i) {
       expanded = expanded === i ? null : i;
       render(false);
+    }
+
+    function share(i, ev) {
+      if (ev) ev.stopPropagation();
+      var d = digests[i];
+      if (!d) return;
+      var header = formatTime(d.date) + ' · ' + typeLabel(d.type) + ' дайджест';
+      var body = (d.text || '').slice(0, 3500);
+      var msg = header + '\n\n' + body;
+      try {
+        if (Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light');
+      } catch(e) {}
+      try {
+        var link = 'https://t.me/share/url?url=' + encodeURIComponent(BOT_URL) +
+                   '&text=' + encodeURIComponent(msg);
+        Telegram.WebApp.openTelegramLink(link);
+      } catch(e) {
+        if (navigator.share) navigator.share({ text: msg }).catch(function(){});
+      }
     }
 
     async function load(skeletons) {
