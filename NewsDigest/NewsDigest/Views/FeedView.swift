@@ -47,9 +47,13 @@ struct FeedView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
+            .animation(.smooth, value: viewModel.editions)
         }
         .background(Color(.systemGroupedBackground))
-        .refreshable { await viewModel.refresh() }
+        .refreshable {
+            await viewModel.refresh()
+            Haptics.success()
+        }
     }
 }
 

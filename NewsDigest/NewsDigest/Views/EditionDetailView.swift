@@ -51,6 +51,7 @@ private struct ChannelSection: View {
 private struct PostView: View {
     let post: Post
     @Environment(\.openURL) private var openURL
+    @State private var zoom: ZoomImage?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -81,6 +82,11 @@ private struct PostView: View {
                 .frame(maxWidth: .infinity)
                 .frame(maxHeight: 260)
                 .clipShape(.rect(cornerRadius: 12))
+                .contentShape(.rect)
+                .onTapGesture {
+                    Haptics.impact(.light)
+                    zoom = ZoomImage(url: url)
+                }
             }
 
             HStack(spacing: 4) {
@@ -96,7 +102,12 @@ private struct PostView: View {
         .background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 14))
         .contentShape(.rect)
         .onTapGesture {
-            if let url = post.telegramURL { openURL(url) }
+            guard let url = post.telegramURL else { return }
+            Haptics.impact(.medium)
+            openURL(url)
+        }
+        .fullScreenCover(item: $zoom) { item in
+            ImageViewer(url: item.url)
         }
     }
 }
