@@ -94,7 +94,7 @@ struct FeedView: View {
                         NavigationLink(value: edition) {
                             EditionCardView(edition: edition)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(PressableStyle())
                     }
                 }
             }
@@ -118,34 +118,41 @@ struct EditionCardView: View {
     private var unread: Int { readStore.unreadCount(edition.allPosts) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                Image(systemName: edition.type.icon)
-                    .font(.system(size: 16))
-                    .foregroundStyle(.secondary)
-                Text(DigestDateFormatter.string(for: edition.publishedAt))
-                    .font(.system(size: 16, weight: .semibold))
-                Spacer(minLength: 8)
-                if unread > 0 {
-                    Text("\(unread) новых")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Color.accentColor, in: .capsule)
-                } else {
-                    Text(edition.type.label)
+        VStack(spacing: 14) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(edition.type.tint.opacity(0.16))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: edition.type.icon)
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(edition.type.tint)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(DigestDateFormatter.string(for: edition.publishedAt))
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.primary)
+                    Text("\(edition.type.label) · \(edition.totalPosts) постов")
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 8)
+
+                if unread > 0 {
+                    Text("\(unread)")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(minWidth: 22)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 4)
+                        .background(edition.type.tint, in: .capsule)
                 }
             }
 
             HStack(spacing: 8) {
                 avatarRow
-                Text("\(edition.totalPosts) постов · \(edition.channels.count) канала")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .semibold))
@@ -153,7 +160,7 @@ struct EditionCardView: View {
             }
         }
         .padding(16)
-        .background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 16))
+        .background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 18))
     }
 
     private var avatarRow: some View {

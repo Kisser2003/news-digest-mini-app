@@ -17,6 +17,11 @@ enum DigestDateFormatter {
         return f
     }()
 
+    /// Только время, «HH:mm».
+    static func timeOnly(for date: Date) -> String {
+        time.string(from: date)
+    }
+
     static func string(for date: Date, calendar: Calendar = .current) -> String {
         let timeText = time.string(from: date)
         if calendar.isDateInToday(date) {

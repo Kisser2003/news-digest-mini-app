@@ -67,13 +67,23 @@ struct PostCard: View {
                 }
             }
 
-            HStack(spacing: 4) {
-                Image(systemName: "arrow.up.forward.app")
-                    .font(.system(size: 12))
-                Text("Открыть в Telegram")
-                    .font(.system(size: 13, weight: .medium))
+            HStack(spacing: 0) {
+                HStack(spacing: 5) {
+                    Image(systemName: "clock").font(.system(size: 11))
+                    Text(DigestDateFormatter.timeOnly(for: post.publishedAt))
+                        .font(.system(size: 12))
+                }
+                .foregroundStyle(.secondary)
+
+                Spacer(minLength: 8)
+
+                HStack(spacing: 4) {
+                    Text("Открыть").font(.system(size: 13, weight: .medium))
+                    Image(systemName: "arrow.up.forward").font(.system(size: 11, weight: .semibold))
+                }
+                .foregroundStyle(Color.accentColor)
             }
-            .foregroundStyle(Color.accentColor)
+            .padding(.top, 2)
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
