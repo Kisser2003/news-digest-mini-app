@@ -8,6 +8,7 @@ struct FeedView: View {
     var body: some View {
         NavigationStack {
             content
+                .background(HeroBackground())
                 .navigationTitle("Дайджесты")
                 .navigationDestination(for: Edition.self) { edition in
                     EditionDetailView(edition: edition)
@@ -80,9 +81,7 @@ struct FeedView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-        }
-        .background(Color(.systemGroupedBackground))
-    }
+        }    }
 
     private var feed: some View {
         ScrollView {
@@ -101,9 +100,7 @@ struct FeedView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .animation(.smooth, value: viewModel.editions)
-        }
-        .background(Color(.systemGroupedBackground))
-        .refreshable {
+        }        .refreshable {
             await viewModel.refresh()
             Haptics.success()
         }
@@ -191,9 +188,7 @@ private struct SkeletonFeed: View {
                 }
             }
             .padding(16)
-        }
-        .background(Color(.systemGroupedBackground))
-    }
+        }    }
 }
 
 private struct EmptyState: View {

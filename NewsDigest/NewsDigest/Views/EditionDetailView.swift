@@ -16,7 +16,7 @@ struct EditionDetailView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
         }
-        .background(Color(.systemGroupedBackground))
+        .background(HeroBackground(tint: edition.type.tint))
         .navigationTitle(edition.type.label)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
