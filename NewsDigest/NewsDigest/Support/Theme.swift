@@ -1,4 +1,73 @@
 import SwiftUI
+import Observation
+
+/// Режим оформления.
+enum AppearanceMode: String, CaseIterable, Identifiable {
+    case system, light, dark
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .system: return "Система"
+        case .light: return "Светлая"
+        case .dark: return "Тёмная"
+        }
+    }
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
+}
+
+/// Акцентный цвет приложения.
+enum AccentTheme: String, CaseIterable, Identifiable {
+    case blue, indigo, teal, purple, pink, orange, graphite
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .blue: return "Синий"
+        case .indigo: return "Индиго"
+        case .teal: return "Бирюза"
+        case .purple: return "Фиолет"
+        case .pink: return "Розовый"
+        case .orange: return "Оранж"
+        case .graphite: return "Графит"
+        }
+    }
+    var color: Color {
+        switch self {
+        case .blue: return Color(hex: "0A84FF")
+        case .indigo: return Color(hex: "5E5CE6")
+        case .teal: return Color(hex: "30B0C7")
+        case .purple: return Color(hex: "BF5AF2")
+        case .pink: return Color(hex: "FF375F")
+        case .orange: return Color(hex: "FF9F0A")
+        case .graphite: return Color(hex: "8E8E93")
+        }
+    }
+}
+
+/// Хранилище настроек оформления (UserDefaults).
+@MainActor
+@Observable
+final class ThemeStore {
+    var appearance: AppearanceMode { didSet { save() } }
+    var accent: AccentTheme { didSet { save() } }
+
+    init() {
+        let d = UserDefaults.standard
+        appearance = AppearanceMode(rawValue: d.string(forKey: "appearance") ?? "") ?? .system
+        accent = AccentTheme(rawValue: d.string(forKey: "accent") ?? "") ?? .blue
+    }
+
+    private func save() {
+        let d = UserDefaults.standard
+        d.set(appearance.rawValue, forKey: "appearance")
+        d.set(accent.rawValue, forKey: "accent")
+    }
+}
 
 extension EditionType {
     /// Акцентный цвет типа выпуска: тёплый для утра, холодный для вечера.

@@ -4,11 +4,12 @@ import SwiftUI
 struct FeedView: View {
     @State private var viewModel = FeedViewModel()
     @State private var showSettings = false
+    @Environment(ThemeStore.self) private var theme
 
     var body: some View {
         NavigationStack {
             content
-                .background(HeroBackground())
+                .background(HeroBackground(tint: theme.accent.color))
                 .navigationTitle("Дайджесты")
                 .navigationDestination(for: Edition.self) { edition in
                     EditionDetailView(edition: edition)

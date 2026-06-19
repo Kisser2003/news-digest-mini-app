@@ -6,15 +6,54 @@ struct SettingsView: View {
 
     @Environment(NotificationManager.self) private var notifications
     @Environment(ReadStore.self) private var readStore
+    @Environment(ThemeStore.self) private var theme
     @Environment(\.dismiss) private var dismiss
 
     private let channels = ["Ateobreaking", "vcnews", "easy_qa_ru", "media_apple"]
 
     var body: some View {
         @Bindable var notifications = notifications
+        @Bindable var theme = theme
 
         NavigationStack {
             Form {
+                Section("Внешний вид") {
+                    Picker("Тема", selection: $theme.appearance) {
+                        ForEach(AppearanceMode.allCases) { mode in
+                            Text(mode.label).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Акцент")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        HStack(spacing: 14) {
+                            ForEach(AccentTheme.allCases) { option in
+                                Circle()
+                                    .fill(option.color)
+                                    .frame(width: 28, height: 28)
+                                    .overlay {
+                                        if theme.accent == option {
+                                            Image(systemName: "checkmark")
+                                                .font(.system(size: 12, weight: .bold))
+                                                .foregroundStyle(.white)
+                                        }
+                                    }
+                                    .overlay {
+                                        Circle().stroke(.primary.opacity(theme.accent == option ? 0.35 : 0), lineWidth: 2)
+                                    }
+                                    .onTapGesture {
+                                        Haptics.selection()
+                                        theme.accent = option
+                                    }
+                            }
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+
                 Section("Напоминания") {
                     Toggle("Уведомления о выпусках", isOn: Binding(
                         get: { notifications.isEnabled },
