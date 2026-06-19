@@ -51,6 +51,11 @@ struct Edition: Identifiable, Hashable {
     var allPosts: [Post] { channels.flatMap(\.posts) }
 }
 
+/// Маршрут на экран канала (для navigationDestination).
+struct ChannelRoute: Hashable {
+    let channel: String
+}
+
 /// Посты одного канала внутри выпуска.
 struct ChannelGroup: Identifiable, Hashable {
     let id: String          // slug канала

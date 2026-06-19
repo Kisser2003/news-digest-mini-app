@@ -31,4 +31,9 @@ final class ReadStore {
             UserDefaults.standard.set(seen.map(\.uuidString), forKey: key)
         }
     }
+
+    func reset() {
+        seen.removeAll()
+        UserDefaults.standard.removeObject(forKey: key)
+    }
 }

@@ -34,19 +34,26 @@ private struct ChannelSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Text(group.info.short)
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 26, height: 26)
-                    .background(group.info.color, in: .circle)
-                Text(group.info.displayName)
-                    .font(.system(size: 16, weight: .semibold))
-                Spacer()
-                Text("\(group.posts.count)")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
+            NavigationLink(value: ChannelRoute(channel: group.channel)) {
+                HStack(spacing: 8) {
+                    Text(group.info.short)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 26, height: 26)
+                        .background(group.info.color, in: .circle)
+                    Text(group.info.displayName)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.primary)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.tertiary)
+                    Spacer()
+                    Text("\(group.posts.count)")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                }
             }
+            .buttonStyle(.plain)
 
             ForEach(group.posts) { post in
                 PostCard(post: post, isNew: newIDs.contains(post.id))

@@ -3,7 +3,7 @@ import SwiftUI
 /// Главный экран — лента выпусков (утро/вечер).
 struct FeedView: View {
     @State private var viewModel = FeedViewModel()
-    @State private var notifications = NotificationManager()
+    @State private var showSettings = false
 
     var body: some View {
         NavigationStack {
@@ -13,8 +13,15 @@ struct FeedView: View {
                 .navigationDestination(for: Edition.self) { edition in
                     EditionDetailView(edition: edition)
                 }
-                .toolbar { channelFilterMenu }
+                .navigationDestination(for: ChannelRoute.self) { route in
+                    ChannelScreen(channel: route.channel,
+                                  posts: viewModel.posts(for: route.channel))
+                }
+                .toolbar { toolbarContent }
                 .searchable(text: $viewModel.searchText, prompt: "Поиск по постам")
+                .sheet(isPresented: $showSettings) {
+                    SettingsView(allPosts: viewModel.allPosts)
+                }
         }
         .task {
             await viewModel.load()
@@ -36,13 +43,13 @@ struct FeedView: View {
     }
 
     @ToolbarContentBuilder
-    private var channelFilterMenu: some ToolbarContent {
+    private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
             Button {
                 Haptics.selection()
-                Task { await notifications.toggle() }
+                showSettings = true
             } label: {
-                Image(systemName: notifications.isEnabled ? "bell.fill" : "bell")
+                Image(systemName: "gearshape")
             }
         }
         ToolbarItem(placement: .topBarTrailing) {

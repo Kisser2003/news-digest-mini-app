@@ -89,6 +89,13 @@ final class FeedViewModel {
         else { disabledChannels.insert(slug) }
     }
 
+    /// Все посты одного канала (по всем выпускам), новые сверху.
+    func posts(for channel: String) -> [Post] {
+        allPosts
+            .filter { $0.channel.lowercased() == channel.lowercased() }
+            .sorted { $0.publishedAt > $1.publishedAt }
+    }
+
     func startListening() {
         guard realtimeTask == nil else { return }
         realtimeTask = Task { [weak self] in
