@@ -41,73 +41,8 @@ private struct ChannelSection: View {
             }
 
             ForEach(group.posts) { post in
-                PostView(post: post)
+                PostCard(post: post)
             }
-        }
-    }
-}
-
-/// Одна карточка поста: текст + картинка + переход в Telegram.
-private struct PostView: View {
-    let post: Post
-    @Environment(\.openURL) private var openURL
-    @State private var zoom: ZoomImage?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if post.hasText {
-                Text(post.text ?? "")
-                    .font(.system(size: 15))
-                    .lineSpacing(3)
-                    .foregroundStyle(.primary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            if let url = post.imageRemoteURL {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image.resizable().scaledToFill()
-                    case .empty:
-                        Rectangle().fill(Color(.tertiarySystemGroupedBackground))
-                            .overlay(ProgressView())
-                    case .failure:
-                        Rectangle().fill(Color(.tertiarySystemGroupedBackground))
-                            .overlay(Image(systemName: "photo").foregroundStyle(.secondary))
-                    @unknown default:
-                        EmptyView()
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .frame(maxHeight: 260)
-                .clipShape(.rect(cornerRadius: 12))
-                .contentShape(.rect)
-                .onTapGesture {
-                    Haptics.impact(.light)
-                    zoom = ZoomImage(url: url)
-                }
-            }
-
-            HStack(spacing: 4) {
-                Image(systemName: "arrow.up.forward.app")
-                    .font(.system(size: 12))
-                Text("Открыть в Telegram")
-                    .font(.system(size: 13, weight: .medium))
-            }
-            .foregroundStyle(Color.accentColor)
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 14))
-        .contentShape(.rect)
-        .onTapGesture {
-            guard let url = post.telegramURL else { return }
-            Haptics.impact(.medium)
-            openURL(url)
-        }
-        .fullScreenCover(item: $zoom) { item in
-            ImageViewer(url: item.url)
         }
     }
 }

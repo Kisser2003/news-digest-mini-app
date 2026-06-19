@@ -11,6 +11,8 @@ struct FeedView: View {
                 .navigationDestination(for: Edition.self) { edition in
                     EditionDetailView(edition: edition)
                 }
+                .toolbar { channelFilterMenu }
+                .searchable(text: $viewModel.searchText, prompt: "Поиск по постам")
         }
         .task {
             await viewModel.load()
@@ -22,13 +24,55 @@ struct FeedView: View {
     @ViewBuilder
     private var content: some View {
         switch viewModel.state {
-        case .idle, .loading where viewModel.editions.isEmpty:
+        case .idle, .loading where viewModel.allPosts.isEmpty:
             SkeletonFeed()
-        case .failed(let message) where viewModel.editions.isEmpty:
+        case .failed(let message) where viewModel.allPosts.isEmpty:
             ErrorState(message: message) { Task { await viewModel.load() } }
         default:
-            feed
+            if viewModel.isSearching { searchResultsList } else { feed }
         }
+    }
+
+    @ToolbarContentBuilder
+    private var channelFilterMenu: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Menu {
+                ForEach(viewModel.allChannels, id: \.self) { channel in
+                    let info = ChannelInfo.of(channel)
+                    Toggle(isOn: Binding(
+                        get: { !viewModel.disabledChannels.contains(channel.lowercased()) },
+                        set: { _ in
+                            Haptics.selection()
+                            viewModel.toggleChannel(channel)
+                        }
+                    )) {
+                        Text(info.displayName)
+                    }
+                }
+            } label: {
+                Image(systemName: viewModel.disabledChannels.isEmpty
+                      ? "line.3.horizontal.decrease.circle"
+                      : "line.3.horizontal.decrease.circle.fill")
+            }
+        }
+    }
+
+    private var searchResultsList: some View {
+        ScrollView {
+            LazyVStack(spacing: 10) {
+                if viewModel.searchResults.isEmpty {
+                    ContentUnavailableView.search(text: viewModel.searchText)
+                        .padding(.top, 60)
+                } else {
+                    ForEach(viewModel.searchResults) { post in
+                        PostCard(post: post, showChannel: true)
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+        }
+        .background(Color(.systemGroupedBackground))
     }
 
     private var feed: some View {

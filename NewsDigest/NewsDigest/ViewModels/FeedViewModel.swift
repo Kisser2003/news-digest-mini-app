@@ -12,8 +12,12 @@ final class FeedViewModel {
         case failed(String)
     }
 
-    private(set) var editions: [Edition] = []
+    private(set) var allPosts: [Post] = []
     private(set) var state: LoadState = .idle
+
+    /// Фильтры (наблюдаемые — UI реагирует).
+    var searchText: String = ""
+    var disabledChannels: Set<String> = []   // lowercased-слаги выключенных каналов
 
     private let repository: PostRepository
     private var realtimeTask: Task<Void, Never>?
@@ -29,7 +33,7 @@ final class FeedViewModel {
         if case .loading = state { return }
         state = .loading
         do {
-            editions = Self.group(try await repository.fetchPosts(limit: 300))
+            allPosts = try await repository.fetchPosts(limit: 300)
             state = .loaded
         } catch {
             state = .failed(error.localizedDescription)
@@ -38,11 +42,51 @@ final class FeedViewModel {
 
     func refresh() async {
         do {
-            editions = Self.group(try await repository.fetchPosts(limit: 300))
+            allPosts = try await repository.fetchPosts(limit: 300)
             state = .loaded
         } catch {
-            if editions.isEmpty { state = .failed(error.localizedDescription) }
+            if allPosts.isEmpty { state = .failed(error.localizedDescription) }
         }
+    }
+
+    // MARK: Фильтрация и поиск
+
+    /// Каналы, реально присутствующие в данных, в нужном порядке.
+    var allChannels: [String] {
+        var seen: [String] = []
+        for p in allPosts where !seen.contains(p.channel) { seen.append(p.channel) }
+        return seen.sorted {
+            let a = Self.channelOrder.firstIndex(of: $0.lowercased()) ?? .max
+            let b = Self.channelOrder.firstIndex(of: $1.lowercased()) ?? .max
+            return a < b
+        }
+    }
+
+    private var visiblePosts: [Post] {
+        allPosts.filter { !disabledChannels.contains($0.channel.lowercased()) }
+    }
+
+    var isSearching: Bool {
+        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// Выпуски с учётом фильтра каналов.
+    var editions: [Edition] { Self.group(visiblePosts) }
+
+    /// Плоский список постов по поисковому запросу.
+    var searchResults: [Post] {
+        let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !q.isEmpty else { return [] }
+        return visiblePosts.filter {
+            ($0.text ?? "").lowercased().contains(q) ||
+            ChannelInfo.of($0.channel).displayName.lowercased().contains(q)
+        }
+    }
+
+    func toggleChannel(_ channel: String) {
+        let slug = channel.lowercased()
+        if disabledChannels.contains(slug) { disabledChannels.remove(slug) }
+        else { disabledChannels.insert(slug) }
     }
 
     func startListening() {
