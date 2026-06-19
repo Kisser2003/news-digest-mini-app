@@ -104,6 +104,9 @@ struct FeedView: View {
 /// Карточка выпуска в ленте.
 struct EditionCardView: View {
     let edition: Edition
+    @Environment(ReadStore.self) private var readStore
+
+    private var unread: Int { readStore.unreadCount(edition.allPosts) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -114,9 +117,18 @@ struct EditionCardView: View {
                 Text(DigestDateFormatter.string(for: edition.publishedAt))
                     .font(.system(size: 16, weight: .semibold))
                 Spacer(minLength: 8)
-                Text(edition.type.label)
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
+                if unread > 0 {
+                    Text("\(unread) новых")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.accentColor, in: .capsule)
+                } else {
+                    Text(edition.type.label)
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                }
             }
 
             HStack(spacing: 8) {

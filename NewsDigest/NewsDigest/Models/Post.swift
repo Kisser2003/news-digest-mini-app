@@ -48,6 +48,7 @@ struct Edition: Identifiable, Hashable {
     let channels: [ChannelGroup]
 
     var totalPosts: Int { channels.reduce(0) { $0 + $1.posts.count } }
+    var allPosts: [Post] { channels.flatMap(\.posts) }
 }
 
 /// Посты одного канала внутри выпуска.

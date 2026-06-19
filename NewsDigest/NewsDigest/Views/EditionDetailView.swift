@@ -3,12 +3,14 @@ import SwiftUI
 /// Экран одного выпуска: посты, сгруппированные по каналам.
 struct EditionDetailView: View {
     let edition: Edition
+    @Environment(ReadStore.self) private var readStore
+    @State private var newIDs: Set<UUID> = []
 
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 24) {
                 ForEach(edition.channels) { group in
-                    ChannelSection(group: group)
+                    ChannelSection(group: group, newIDs: newIDs)
                 }
             }
             .padding(.horizontal, 16)
@@ -17,12 +19,18 @@ struct EditionDetailView: View {
         .background(Color(.systemGroupedBackground))
         .navigationTitle(edition.type.label)
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            // Запоминаем, что было новым на момент открытия, затем помечаем прочитанным.
+            newIDs = Set(edition.allPosts.filter { !readStore.isSeen($0.id) }.map(\.id))
+            readStore.markSeen(edition.allPosts)
+        }
     }
 }
 
 /// Секция одного канала: заголовок + посты.
 private struct ChannelSection: View {
     let group: ChannelGroup
+    let newIDs: Set<UUID>
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -41,7 +49,7 @@ private struct ChannelSection: View {
             }
 
             ForEach(group.posts) { post in
-                PostCard(post: post)
+                PostCard(post: post, isNew: newIDs.contains(post.id))
             }
         }
     }

@@ -4,12 +4,22 @@ import SwiftUI
 struct PostCard: View {
     let post: Post
     var showChannel: Bool = false
+    var isNew: Bool = false
 
     @Environment(\.openURL) private var openURL
     @State private var zoom: ZoomImage?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
+            if isNew {
+                HStack(spacing: 5) {
+                    Circle().fill(Color.accentColor).frame(width: 7, height: 7)
+                    Text("Новое")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.accentColor)
+                }
+            }
+
             if showChannel {
                 HStack(spacing: 8) {
                     Text(post.info.short)
