@@ -3,6 +3,7 @@ import SwiftUI
 /// Главный экран — лента выпусков (утро/вечер).
 struct FeedView: View {
     @State private var viewModel = FeedViewModel()
+    @State private var notifications = NotificationManager()
 
     var body: some View {
         NavigationStack {
@@ -35,6 +36,14 @@ struct FeedView: View {
 
     @ToolbarContentBuilder
     private var channelFilterMenu: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            Button {
+                Haptics.selection()
+                Task { await notifications.toggle() }
+            } label: {
+                Image(systemName: notifications.isEnabled ? "bell.fill" : "bell")
+            }
+        }
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
                 ForEach(viewModel.allChannels, id: \.self) { channel in
