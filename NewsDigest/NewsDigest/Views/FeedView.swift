@@ -122,47 +122,41 @@ struct FeedView: View {
 
     private var searchResultsList: some View {
         ScrollView {
-            GlassEffectContainer(spacing: 6) {
-                LazyVStack(spacing: 10) {
-                    if viewModel.searchResults.isEmpty {
-                        ContentUnavailableView.search(text: viewModel.searchText)
-                            .padding(.top, 60)
-                    } else {
-                        ForEach(viewModel.searchResults) { post in
-                            PostCard(post: post, showChannel: true)
-                        }
+            LazyVStack(spacing: 10) {
+                if viewModel.searchResults.isEmpty {
+                    ContentUnavailableView.search(text: viewModel.searchText)
+                        .padding(.top, 60)
+                } else {
+                    ForEach(viewModel.searchResults) { post in
+                        PostCard(post: post, showChannel: true)
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
     }
 
     private var feed: some View {
         ScrollView {
-            // Один проход рендера на всё видимое стекло (оптимизация Apple).
-            // spacing < зазора между карточками → они не сливаются в один блоб.
-            GlassEffectContainer(spacing: 6) {
-                LazyVStack(alignment: .leading, spacing: 28) {
-                    if viewModel.sections.isEmpty {
-                        EmptyState().padding(.top, 80)
-                    } else {
-                        ForEach(viewModel.sections) { section in
-                            ChannelFeedSection(
-                                group: section,
-                                newIDs: newIDs,
-                                isExpanded: expandedChannels.contains(section.channel.lowercased()),
-                                onToggle: { toggleExpand(section.channel) },
-                                onSeen: { readStore.markSeen([$0]) }
-                            )
-                        }
+            LazyVStack(alignment: .leading, spacing: 28) {
+                if viewModel.sections.isEmpty {
+                    EmptyState().padding(.top, 80)
+                } else {
+                    ForEach(viewModel.sections) { section in
+                        ChannelFeedSection(
+                            group: section,
+                            newIDs: newIDs,
+                            isExpanded: expandedChannels.contains(section.channel.lowercased()),
+                            onToggle: { toggleExpand(section.channel) },
+                            onSeen: { readStore.markSeen([$0]) }
+                        )
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .animation(.smooth, value: viewModel.sections)
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .animation(.smooth, value: viewModel.sections)
         }
         .refreshable {
             await viewModel.refresh()

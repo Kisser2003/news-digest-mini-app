@@ -10,15 +10,13 @@ struct ChannelScreen: View {
 
     var body: some View {
         ScrollView {
-            GlassEffectContainer(spacing: 6) {
-                LazyVStack(spacing: 10) {
-                    ForEach(posts) { post in
-                        PostCard(post: post)
-                    }
+            LazyVStack(spacing: 10) {
+                ForEach(posts) { post in
+                    PostCard(post: post)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
         .background(HeroBackground(tint: info.color))
         .navigationTitle(info.displayName)
