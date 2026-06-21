@@ -21,6 +21,7 @@ final class ReadStore {
     /// На самом первом запуске считаем уже существующие посты прочитанными —
     /// иначе вся лента подсветилась бы как «Новое». Возвращает true, если засев
     /// только что произошёл (значит ничего помечать «новым» в этой сессии не надо).
+    @discardableResult
     func seedIfNeeded(_ posts: [Post]) -> Bool {
         guard !UserDefaults.standard.bool(forKey: seededKey) else { return false }
         guard !posts.isEmpty else { return false }   // ждём, пока появятся посты

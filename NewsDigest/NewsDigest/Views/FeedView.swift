@@ -4,10 +4,6 @@ import SwiftUI
 struct FeedView: View {
     @State private var viewModel = FeedViewModel()
     @State private var showSettings = false
-    /// Снимок «новых» постов на время сессии (не сбрасывается при пометке прочитанным).
-    @State private var newIDs: Set<UUID> = []
-    /// Развёрнутые секции каналов (слаги). Пусто = всё свёрнуто (по умолчанию).
-    @State private var expandedChannels: Set<String> = []
     /// Меняется при возврате из фона — перезапускает realtime-подписку.
     @State private var listenToken = 0
     @Environment(\.scenePhase) private var scenePhase
@@ -31,46 +27,26 @@ struct FeedView: View {
         }
         .task {
             await viewModel.load()
-            captureNew()
+            readStore.seedIfNeeded(viewModel.allPosts)
         }
         // Отдельная задача под realtime: токен меняется при возврате из фона →
         // подписка пересоздаётся (старый websocket мог отвалиться, пока свёрнуто).
         .task(id: listenToken) {
             await viewModel.listenForUpdates()
         }
-        .onChange(of: viewModel.allPosts.count) { captureNew() }
+        .onChange(of: viewModel.allPosts.count) {
+            readStore.seedIfNeeded(viewModel.allPosts)
+        }
         .onChange(of: scenePhase) { _, phase in
             switch phase {
             case .active:
                 listenToken += 1
-                Task {
-                    await viewModel.refresh()   // догнать пропущенное за время в фоне
-                    captureNew()
-                }
+                Task { await viewModel.refresh() }   // догнать пропущенное за время в фоне
             case .background:
                 BackgroundRefresh.schedule()    // запланировать фоновую проверку новых постов
             default:
                 break
             }
-        }
-    }
-
-    private func toggleExpand(_ channel: String) {
-        let slug = channel.lowercased()
-        Haptics.selection()
-        withAnimation(.snappy) {
-            if expandedChannels.contains(slug) { expandedChannels.remove(slug) }
-            else { expandedChannels.insert(slug) }
-        }
-    }
-
-    /// Запомнить ещё непрочитанные посты как «новые» для текущей сессии.
-    /// На первом запуске вместо этого засеваем «прочитано» — чтобы лента не
-    /// подсветилась целиком как новая.
-    private func captureNew() {
-        if readStore.seedIfNeeded(viewModel.allPosts) { return }
-        for post in viewModel.allPosts where !readStore.isSeen(post.id) {
-            newIDs.insert(post.id)
         }
     }
 
@@ -139,18 +115,12 @@ struct FeedView: View {
 
     private var feed: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 28) {
+            LazyVStack(alignment: .leading, spacing: 12) {
                 if viewModel.sections.isEmpty {
                     EmptyState().padding(.top, 80)
                 } else {
                     ForEach(viewModel.sections) { section in
-                        ChannelFeedSection(
-                            group: section,
-                            newIDs: newIDs,
-                            isExpanded: expandedChannels.contains(section.channel.lowercased()),
-                            onToggle: { toggleExpand(section.channel) },
-                            onSeen: { readStore.markSeen([$0]) }
-                        )
+                        ChannelRow(group: section)
                     }
                 }
             }
@@ -160,86 +130,77 @@ struct FeedView: View {
         }
         .refreshable {
             await viewModel.refresh()
-            captureNew()
             Haptics.success()
         }
     }
 }
 
-/// Сворачиваемая секция канала: заголовок-стекло (тап — развернуть/свернуть) +
-/// свежие посты + ссылка «показать все». По умолчанию свёрнута.
-private struct ChannelFeedSection: View {
+/// Строка канала на главном экране: аватар, название, бейдж непрочитанного,
+/// превью последнего поста. Тап — провалиться в канал (вся его лента).
+private struct ChannelRow: View {
     let group: ChannelGroup
-    let newIDs: Set<UUID>
-    let isExpanded: Bool
-    let onToggle: () -> Void
-    let onSeen: (Post) -> Void
+    @Environment(ReadStore.self) private var readStore
 
-    /// Сколько постов показывать прямо в ленте (остальное — на экране канала).
-    private static let previewLimit = 6
-
-    private var unread: Int { group.posts.lazy.filter { newIDs.contains($0.id) }.count }
-    private var visible: [Post] { Array(group.posts.prefix(Self.previewLimit)) }
+    private var unread: Int {
+        group.posts.reduce(0) { $0 + (readStore.isSeen($1.id) ? 0 : 1) }
+    }
+    private var latest: Post? { group.posts.first }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Button(action: onToggle) {
-                HStack(spacing: 10) {
-                    Text(group.info.short)
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 30, height: 30)
-                        .background(group.info.color, in: .circle)
-                    Text(group.info.displayName)
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(.primary)
-                    if unread > 0 {
-                        Text("\(unread)")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(minWidth: 20)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(group.info.color, in: .capsule)
-                    }
-                    Spacer(minLength: 8)
-                    Text("\(group.posts.count)")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(.secondary)
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 16))
-                .contentShape(.rect)
-            }
-            .buttonStyle(.plain)
+        NavigationLink(value: ChannelRoute(channel: group.channel)) {
+            HStack(spacing: 12) {
+                Text(group.info.short)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background(group.info.color, in: .circle)
 
-            if isExpanded {
-                ForEach(visible) { post in
-                    PostCard(post: post, isNew: newIDs.contains(post.id))
-                        .onAppear { onSeen(post) }
-                }
-
-                if group.posts.count > Self.previewLimit {
-                    NavigationLink(value: ChannelRoute(channel: group.channel)) {
-                        HStack(spacing: 6) {
-                            Text("Показать все \(group.posts.count)")
-                                .font(.system(size: 14, weight: .medium))
-                            Image(systemName: "arrow.right")
-                                .font(.system(size: 12, weight: .semibold))
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 8) {
+                        Text(group.info.displayName)
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(.primary)
+                        if unread > 0 {
+                            Text("\(unread)")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(minWidth: 20)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(group.info.color, in: .capsule)
                         }
-                        .foregroundStyle(group.info.color)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 14))
+                        Spacer(minLength: 4)
+                        if let latest {
+                            Text(DigestDateFormatter.timeOnly(for: latest.publishedAt))
+                                .font(.system(size: 12))
+                                .foregroundStyle(.secondary)
+                        }
                     }
-                    .buttonStyle(.plain)
+                    Text(previewText)
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.tertiary)
             }
+            .padding(14)
+            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 18))
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var previewText: String {
+        guard let latest else { return "Постов пока нет" }
+        if latest.hasText { return latest.text ?? "" }
+        switch latest.media {
+        case .video: return "🎬 Видео"
+        case .image: return "🖼 Фото"
+        case .none:  return "—"
         }
     }
 }
