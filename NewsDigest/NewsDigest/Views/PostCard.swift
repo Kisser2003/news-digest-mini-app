@@ -84,10 +84,10 @@ struct PostCard: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        // Матовый материал, а не .glassEffect: Liquid Glass на каждой ячейке
-        // длинного ScrollView ломает прокрутку. Материал выглядит так же
-        // (frosted над градиентом), но скроллится без проблем.
-        .background(.ultraThinMaterial, in: .rect(cornerRadius: 18))
+        // Сплошной фон, не материал/стекло: backdrop-блюр на каждой ячейке
+        // длинной ленты пересчитывается покадрово и фризит переход в канал.
+        // Сплошной — мгновенный, вид тот же «карточный».
+        .background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 18))
         .contentShape(.rect)
         .onTapGesture {
             guard let url = post.telegramURL else { return }

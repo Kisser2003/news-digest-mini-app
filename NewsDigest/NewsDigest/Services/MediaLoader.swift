@@ -141,7 +141,9 @@ struct CachedImage<Content: View>: View {
             let image = try await ImageLoader.shared.image(
                 for: url, maxPixel: targetWidth * displayScale
             )
-            phase = .success(Image(uiImage: image))
+            withAnimation(.easeOut(duration: 0.22)) {
+                phase = .success(Image(uiImage: image))
+            }
             loadedURL = url
         } catch {
             if !Task.isCancelled { phase = .failure(error) }
