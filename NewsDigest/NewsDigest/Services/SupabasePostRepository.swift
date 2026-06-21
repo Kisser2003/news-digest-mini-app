@@ -21,7 +21,7 @@ struct SupabasePostRepository: PostRepository {
             .value
     }
 
-    func liveInserts() -> AsyncStream<Post> {
+    func liveInserts() -> AsyncStream<Void> {
         AsyncStream { continuation in
             let task = Task {
                 let channel = client.realtimeV2.channel("public:\(table)")
@@ -30,14 +30,15 @@ struct SupabasePostRepository: PostRepository {
                     schema: "public",
                     table: table
                 )
-                await channel.subscribe()
-                for await insert in inserts {
-                    if let post = try? insert.decodeRecord(
-                        as: Post.self,
-                        decoder: SupabaseConfig.jsonDecoder
-                    ) {
-                        continuation.yield(post)
-                    }
+                do {
+                    try await channel.subscribeWithError()
+                } catch {
+                    continuation.finish()
+                    return
+                }
+                // Значение не декодируем — нужен только сигнал «появились новые».
+                for await _ in inserts {
+                    continuation.yield(())
                 }
                 await channel.unsubscribe()
                 continuation.finish()

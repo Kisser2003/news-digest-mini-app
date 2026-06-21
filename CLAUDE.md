@@ -1,114 +1,124 @@
-# News Digest — Telegram Mini App
+# News Digest — нативное iOS-приложение
 
-Telegram Mini App компаньон для бота @news_digest_bot.
-Показывает историю AI-дайджестов, которые бот генерирует 2 раза в день.
+SwiftUI-приложение (iOS 17+), показывает **сырые посты** из 4 Telegram-каналов
+в виде **живой ленты, сгруппированной по каналам** (картинки и видео).
+Тап по посту → оригинал в Telegram. **Без AI-выжимки** (решение принято).
+Выпуски утро/вечер убраны 20.06.2026 — теперь непрерывный live-поток.
 
----
-
-## Бот (уже работает)
-
-### Workflow 1: Telegram News Digest 2x/day
-**ID:** `Oyw6fggNKFIErBRg`
-**URL:** https://kisser.app.n8n.cloud/workflow/Oyw6fggNKFIErBRg
-
-Расписание:
-- 🌅 Утро: `0 5 * * *` UTC (08:00 МСК) — тип `morning`
-- 🌙 Вечер: `0 17 * * *` UTC (20:00 МСК) — тип `evening`
-
-Источники (RSS через прокси tg.i-c-a.su):
-- `@Ateobreaking` — https://tg.i-c-a.su/rss/Ateobreaking
-- `@vcnews` — https://tg.i-c-a.su/rss/vcnews
-- `@easy_qa_ru` — https://tg.i-c-a.su/rss/easy_qa_ru
-- `@media_apple` — https://tg.i-c-a.su/rss/media_apple
-
-AI: Google Gemini 2.5 Flash
-Получатель: chatId `810176982`
-
-### Workflow 2: Telegram Bot Commands
-**ID:** `DWvgqOTzbAFBKCWm`
-**URL:** https://kisser.app.n8n.cloud/workflow/DWvgqOTzbAFBKCWm
-
-Команды:
-- `/now` — дайджест по запросу (тип `manual`)
-- `/history` — последние 5 дайджестов
-- `/sources` — статистика за 7 дней
-- Любая другая команда → help
-
-Разрешённые chatId: `810176982`, `505915947`
+> Проект вырос из Telegram-бота `@news_digest_bot` и Telegram Mini App.
+> Та эпоха — легаси; актуально только нативное iOS-приложение.
 
 ---
 
-## База данных
+## Структура
 
-**DataTable ID:** `bL4xDbh1n1RLAwLT` (n8n встроенная таблица)
+Xcode-проект в подпапке `NewsDigest/` (`NewsDigest.xcodeproj`).
 
-Схема:
+```
+NewsDigest/NewsDigest/
+├── Config/SupabaseConfig.swift      // URL + anon-ключ + единый клиент `supabase`
+├── Models/Post.swift                // Post, Edition, ChannelGroup, EditionType, ChannelRoute
+├── Services/
+│   ├── PostRepository.swift         // протокол источника постов
+│   ├── SupabasePostRepository.swift // PostgREST-чтение + Realtime-инсерты
+│   ├── ReadStore.swift              // прочитанное (бейджи/метки)
+│   └── NotificationManager.swift    // локальные напоминания
+├── ViewModels/FeedViewModel.swift   // @Observable; sections:[ChannelGroup], кеш
+├── Views/
+│   ├── FeedView.swift               // live-лента: секции по каналам
+│   ├── ChannelScreen.swift          // все посты одного канала
+│   ├── SettingsView.swift           // тема, акценты, напоминания, прочитанное
+│   ├── PostCard.swift               // картинка/видео через CachedImage
+│   ├── ImageViewer.swift            // зум картинок
+│   └── VideoPlayerScreen.swift      // инлайн-плеер видео
+└── Support/                          // Theme, ChannelInfo, Haptics, DateFormatting
+
+NewsDigestWidget/                     // target NewsDigestWidgetExtension (medium)
+├── NewsDigestWidget.swift           // bundle, widget, Provider, view
+├── WidgetData.swift                 // модель + WidgetAPI (прямой URLSession в Supabase)
+└── Info.plist                       // NSExtension widgetkit
+```
+
+### Сделано
+Live-лента по каналам (до 6 постов в секции + «показать все»), экран канала,
+поиск, фильтр каналов, непрочитанное (снимок «новых» на сессию), вибрация,
+кеш+даунсэмплинг картинок, видео (постер + плеер), зум, локальные напоминания,
+градиент-фон, настройки (тема + 7 акцентов), иконка.
+
+### Бэклог
+- [ ] Закладки
+- [ ] Контекстное меню поста (long-press)
+- [ ] Размер шрифта
+- [ ] Удалить легаси-таблицу `digests` в Supabase (старый воркфлоу уже деактивирован)
+
+---
+
+## Бэкенд
+
+### Supabase
+- ref `puxvslevqvdbkezyfdjm`, URL `https://puxvslevqvdbkezyfdjm.supabase.co`
+- publishable (anon) ключ — в `SupabaseConfig.swift`, безопасен для клиента (RLS public read)
+- secret (`service_role`) ключ живёт **только в n8n**, в приложение не кладётся
+
+**Таблица `posts`:**
 | Поле | Тип | Описание |
 |------|-----|----------|
-| `date` | string (ISO 8601) | Время создания дайджеста |
-| `type` | string | `morning` / `evening` / `manual` |
-| `text` | string | Текст дайджеста (plain text + emoji) |
+| `channel` | string | слаг канала |
+| `message_id` | int | id поста в Telegram |
+| `text` | string | текст поста |
+| `image_url` | string | картинка |
+| `link` | string | ссылка на оригинал в Telegram |
+| `published_at` | timestamptz | время публикации |
+| `edition` | string | `morning`/`evening` — приложением НЕ используется, но `Post.edition` декодится non-optional, поэтому бэкенд обязан класть валидное значение (по часу МСК) |
+| `edition_date` | date | `YYYY-MM-DD` |
 
-Записи добавляются нодами:
-- `Save Digest History` (morning)
-- `Save Evening Digest History` (evening)
-- `Save Now History` (manual /now)
+Уникальный индекс `(channel, message_id)` → дедуп на стороне БД. Таблица
+`digests` — легаси (AI-дайджесты), приложением не используется.
 
----
-
-## Mini App (в разработке)
-
-**Файл:** `index.html` (single-file SPA)
-
-### Реализовано
-- Карточная лента с expand/collapse (тап раскрывает полный текст)
-- Время выпуска: "Сегодня, 08:00", "Вчера, 20:00"
-- 4 круглые аватарки каналов-источников
-- Превью текста 2-3 строки с "..."
-- Светлая и тёмная тема (Telegram native CSS vars)
-- Без своего хедера — используется системная шапка Telegram
-- Скелетоны при загрузке
-- Pull-to-refresh
-- Пустое состояние "Дайджестов пока нет"
-- Sticky кнопка "Обновить" в стиле Telegram MainButton
-- CSS mesh-gradient / chrome glow эффект (Variant B — явное свечение, особенно на тёмной теме)
-
-### Нужно сделать
-- [ ] Подключить реальный API для чтения из DataTable `bL4xDbh1n1RLAwLT`
-- [ ] Webhook-эндпоинт в n8n для отдачи истории (GET /digest-history)
-- [ ] Деплой Mini App (GitHub Pages / Cloudflare Pages / etc.)
-- [ ] Привязать Mini App URL к боту через BotFather
+### n8n
+- instance `kisser.app.n8n.cloud`
+- **АКТИВНЫЙ:** `LzPottf3uOCMsvSH` «News Feed Live (posts every 30 min)» —
+  cron `*/30 * * * *` → 4 RSS (`tg.i-c-a.su`) → merge → Code «Build Posts»
+  (split-парсинг, фильтр 12ч, edition по МСК) → HTTP «Push Posts» с
+  `on_conflict=channel,message_id` + `resolution=ignore-duplicates`.
+- **ДЕАКТИВИРОВАН:** `Oyw6fggNKFIErBRg` (старый 2×/день Gemini AI-дайджест +
+  Telegram) — выключен 20.06.2026 при переходе на live-ленту.
+- секретный ключ зашит в HTTP-ноде
 
 ---
 
-## Архитектура API
+## Каналы-источники
 
-Mini App должна получать данные через n8n webhook:
+| Канал | Слаг | Тематика |
+|-------|------|----------|
+| @Ateobreaking | `ateobreaking` | Новости/политика |
+| @vcnews | `vcnews` | Технологии/бизнес |
+| @easy_qa_ru | `easy_qa_ru` | QA/разработка |
+| @media_apple | `media_apple` | Apple/гаджеты |
 
+Порядок каналов в выпуске задаётся `FeedViewModel.channelOrder`.
+
+---
+
+## Сборка и грабли
+
+**Стек:** SwiftUI, supabase-swift 2.48, Personal Team (бесплатно),
+Bundle `com.kisser.newsdigest`.
+
+**Ограничения бесплатного Apple-аккаунта:**
+- подпись живёт 7 дней (раз в неделю переподписывать — ⌘R)
+- серверные push нельзя (только локальные уведомления)
+- App Groups нельзя → виджет должен ходить в Supabase напрямую
+
+**Проверка сборки из CLI:**
+```bash
+cd NewsDigest && xcodebuild -project NewsDigest.xcodeproj \
+  -scheme NewsDigest \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' \
+  build CODE_SIGNING_ALLOWED=NO 2>&1 | grep -E "error:|warning:|BUILD (SUCCEEDED|FAILED)"
 ```
-GET https://kisser.app.n8n.cloud/webhook/digest-history
-→ [{ date, type, text }, ...]  (последние N записей, новые сверху)
-```
 
-Нужно создать отдельный workflow с Webhook trigger, который читает из
-DataTable `bL4xDbh1n1RLAwLT` и возвращает JSON.
-
----
-
-## Каналы-источники (для аватарок в UI)
-
-| Канал | Slug для CSS/аватарки | Тематика |
-|-------|----------------------|----------|
-| @Ateobreaking | `ateo` | Новости/политика |
-| @vcnews | `vc` | Технологии/бизнес |
-| @easy_qa_ru | `qa` | QA/разработка |
-| @media_apple | `apple` | Apple/гаджеты |
-
----
-
-## Технические детали
-
-- n8n instance: `kisser.app.n8n.cloud`
-- Telegram Bot: @news_digest_bot
-- RSS прокси: `tg.i-c-a.su` (конвертирует Telegram-каналы в RSS)
-- Timezone бота: Europe/Moscow (UTC+3)
+**Грабли:**
+- Xcode держит старый буфер при внешних правках файлов → если изменения не видны:
+  ⌘Q, переоткрыть проект, ⌘⇧K (clean), ⌘R.
+- VPN ломает DNS симулятора (ошибка -1003) → выключить VPN / Device → Restart.

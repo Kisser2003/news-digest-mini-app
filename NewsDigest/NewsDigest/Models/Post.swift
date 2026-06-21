@@ -32,24 +32,27 @@ struct Post: Identifiable, Codable, Hashable {
         case editionDate = "edition_date"
     }
 
-    var imageRemoteURL: URL? { imageURL.flatMap(URL.init(string:)) }
+    /// Что лежит в `image_url`: картинка, видео (`.mp4` и т.п.) или ничего.
+    /// Источник `tg.i-c-a.su` кладёт видео в то же поле, что и картинки.
+    enum Media { case none, image, video }
+
+    var media: Media {
+        guard let path = imageURL?.split(separator: "?").first?.lowercased() else { return .none }
+        if Self.videoExtensions.contains(where: path.hasSuffix) { return .video }
+        return .image
+    }
+
+    private static let videoExtensions = [".mp4", ".mov", ".m4v", ".webm"]
+
+    /// URL картинки (только если это действительно картинка, не видео).
+    var imageRemoteURL: URL? { media == .image ? imageURL.flatMap(URL.init(string:)) : nil }
+    /// URL видео (только если в `image_url` лежит видеофайл).
+    var videoRemoteURL: URL? { media == .video ? imageURL.flatMap(URL.init(string:)) : nil }
     var telegramURL: URL? { link.flatMap(URL.init(string:)) }
     var hasText: Bool { !(text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 }
 
 // MARK: - Группировки для UI
-
-/// Выпуск = все посты за один (день + утро/вечер).
-struct Edition: Identifiable, Hashable {
-    let id: String          // "2026-06-19-morning"
-    let date: String
-    let type: EditionType
-    let publishedAt: Date   // время самого свежего поста (для шапки)
-    let channels: [ChannelGroup]
-
-    var totalPosts: Int { channels.reduce(0) { $0 + $1.posts.count } }
-    var allPosts: [Post] { channels.flatMap(\.posts) }
-}
 
 /// Маршрут на экран канала (для navigationDestination).
 struct ChannelRoute: Hashable {

@@ -8,6 +8,7 @@ struct PostCard: View {
 
     @Environment(\.openURL) private var openURL
     @State private var zoom: ZoomImage?
+    @State private var playingVideo: PlayingVideo?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -42,29 +43,25 @@ struct PostCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            if let url = post.imageRemoteURL {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image.resizable().scaledToFill()
-                    case .empty:
-                        Rectangle().fill(Color(.tertiarySystemGroupedBackground))
-                            .overlay(ProgressView())
-                    case .failure:
-                        Rectangle().fill(Color(.tertiarySystemGroupedBackground))
-                            .overlay(Image(systemName: "photo").foregroundStyle(.secondary))
-                    @unknown default:
-                        EmptyView()
-                    }
+            switch post.media {
+            case .image:
+                if let url = post.imageRemoteURL {
+                    mediaImage(url)
                 }
-                .frame(maxWidth: .infinity)
-                .frame(maxHeight: 260)
-                .clipShape(.rect(cornerRadius: 12))
-                .contentShape(.rect)
-                .onTapGesture {
-                    Haptics.impact(.light)
-                    zoom = ZoomImage(url: url)
+            case .video:
+                if let url = post.videoRemoteURL {
+                    VideoThumbnail(url: url)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 200)
+                        .clipShape(.rect(cornerRadius: 12))
+                        .contentShape(.rect)
+                        .onTapGesture {
+                            Haptics.impact(.light)
+                            playingVideo = PlayingVideo(url: url)
+                        }
                 }
+            case .none:
+                EmptyView()
             }
 
             HStack(spacing: 0) {
@@ -87,7 +84,7 @@ struct PostCard: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 14))
+        .glassEffect(.regular, in: .rect(cornerRadius: 18))
         .contentShape(.rect)
         .onTapGesture {
             guard let url = post.telegramURL else { return }
@@ -96,6 +93,63 @@ struct PostCard: View {
         }
         .fullScreenCover(item: $zoom) { item in
             ImageViewer(url: item.url)
+        }
+        .fullScreenCover(item: $playingVideo) { item in
+            VideoPlayerScreen(url: item.url)
+        }
+    }
+
+    private func mediaImage(_ url: URL) -> some View {
+        CachedImage(url: url, targetWidth: 400) { phase in
+            switch phase {
+            case .success(let image):
+                image.resizable().scaledToFill()
+            case .empty:
+                Rectangle().fill(Color(.tertiarySystemGroupedBackground))
+                    .overlay(ProgressView())
+            case .failure:
+                Rectangle().fill(Color(.tertiarySystemGroupedBackground))
+                    .overlay(Image(systemName: "photo").foregroundStyle(.secondary))
+            @unknown default:
+                EmptyView()
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(maxHeight: 260)
+        .clipShape(.rect(cornerRadius: 12))
+        .contentShape(.rect)
+        .onTapGesture {
+            Haptics.impact(.light)
+            zoom = ZoomImage(url: url)
+        }
+    }
+}
+
+/// Превью видео: постер-кадр (если удалось извлечь) + кнопка play поверх.
+private struct VideoThumbnail: View {
+    let url: URL
+    @Environment(\.displayScale) private var displayScale
+    @State private var poster: UIImage?
+
+    var body: some View {
+        ZStack {
+            if let poster {
+                Image(uiImage: poster)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Rectangle().fill(Color.black.opacity(0.85))
+            }
+
+            Image(systemName: "play.circle.fill")
+                .font(.system(size: 48))
+                .foregroundStyle(.white.opacity(0.9))
+                .shadow(radius: 8)
+        }
+        .task(id: url) {
+            poster = await VideoThumbnailLoader.shared.thumbnail(
+                for: url, maxPixel: 600 * displayScale
+            )
         }
     }
 }

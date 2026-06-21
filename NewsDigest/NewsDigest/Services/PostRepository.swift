@@ -5,6 +5,8 @@ protocol PostRepository {
     /// Загрузить посты (новые сверху).
     func fetchPosts(limit: Int) async throws -> [Post]
 
-    /// Поток новых постов в реальном времени.
-    func liveInserts() -> AsyncStream<Post>
+    /// Сигнал о появлении новых постов в реальном времени. Значение не важно —
+    /// получив сигнал, ViewModel делает полный refresh (надёжнее, чем доверять
+    /// декоду отдельной realtime-записи).
+    func liveInserts() -> AsyncStream<Void>
 }

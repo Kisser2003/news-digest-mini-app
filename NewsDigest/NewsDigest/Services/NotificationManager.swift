@@ -12,6 +12,9 @@ final class NotificationManager {
     var eveningHour: Int
     var eveningMinute: Int
 
+    /// Уведомления о новых постах через фоновое обновление.
+    var newPostsEnabled: Bool
+
     private let morningID = "edition.morning"
     private let eveningID = "edition.evening"
     private let defaults = UserDefaults.standard
@@ -22,6 +25,24 @@ final class NotificationManager {
         morningMinute = defaults.object(forKey: "mMin") as? Int ?? 0
         eveningHour = defaults.object(forKey: "eHour") as? Int ?? 21
         eveningMinute = defaults.object(forKey: "eMin") as? Int ?? 0
+        newPostsEnabled = defaults.bool(forKey: "newPostsNotify")
+    }
+
+    /// Вкл/выкл уведомления о новых постах (фоновое обновление).
+    func toggleNewPosts() async {
+        if newPostsEnabled {
+            newPostsEnabled = false
+            defaults.set(false, forKey: "newPostsNotify")
+        } else {
+            let center = UNUserNotificationCenter.current()
+            let granted = (try? await center.requestAuthorization(options: [.alert, .sound, .badge])) ?? false
+            newPostsEnabled = granted
+            defaults.set(granted, forKey: "newPostsNotify")
+            if granted {
+                BackgroundRefresh.seedBaseline()
+                BackgroundRefresh.schedule()
+            }
+        }
     }
 
     // Доступ для DatePicker (hourAndMinute).

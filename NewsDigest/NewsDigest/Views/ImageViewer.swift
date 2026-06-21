@@ -18,7 +18,7 @@ struct ImageViewer: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            AsyncImage(url: url) { phase in
+            CachedImage(url: url, targetWidth: 900) { phase in
                 switch phase {
                 case .success(let image):
                     image

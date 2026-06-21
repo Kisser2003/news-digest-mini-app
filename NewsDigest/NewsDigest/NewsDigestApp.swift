@@ -15,5 +15,8 @@ struct NewsDigestApp: App {
                 .tint(theme.accent.color)
                 .preferredColorScheme(theme.appearance.colorScheme)
         }
+        .backgroundTask(.appRefresh(BackgroundRefresh.taskID)) {
+            await BackgroundRefresh.run()
+        }
     }
 }

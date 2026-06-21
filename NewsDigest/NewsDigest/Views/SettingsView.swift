@@ -9,6 +9,9 @@ struct SettingsView: View {
     @Environment(ThemeStore.self) private var theme
     @Environment(\.dismiss) private var dismiss
 
+    @State private var cacheBytes = 0
+    @State private var isClearingCache = false
+
     private let channels = ["Ateobreaking", "vcnews", "easy_qa_ru", "media_apple"]
 
     var body: some View {
@@ -70,6 +73,20 @@ struct SettingsView: View {
                     }
                 }
 
+                Section {
+                    Toggle("Уведомлять о новых постах", isOn: Binding(
+                        get: { notifications.newPostsEnabled },
+                        set: { _ in
+                            Haptics.selection()
+                            Task { await notifications.toggleNewPosts() }
+                        }
+                    ))
+                } header: {
+                    Text("Новые посты")
+                } footer: {
+                    Text("Приложение проверяет ленту в фоне и присылает уведомление о новых постах. Момент проверки выбирает iOS (обычно раз в 15–60 минут) — мгновенной доставки на бесплатном аккаунте нет.")
+                }
+
                 Section("Лента") {
                     Button {
                         Haptics.success()
@@ -104,15 +121,43 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    LabeledContent("Размер кэша",
+                                   value: ByteCountFormatter.string(fromByteCount: Int64(cacheBytes), countStyle: .file))
+                    Button(role: .destructive) {
+                        Haptics.impact(.medium)
+                        Task {
+                            isClearingCache = true
+                            await CacheManager.clearAll()
+                            cacheBytes = await CacheManager.totalSizeBytes()
+                            isClearingCache = false
+                        }
+                    } label: {
+                        HStack {
+                            Label("Очистить кэш", systemImage: "trash")
+                            if isClearingCache {
+                                Spacer()
+                                ProgressView()
+                            }
+                        }
+                    }
+                    .disabled(isClearingCache)
+                } header: {
+                    Text("Кэш")
+                } footer: {
+                    Text("Картинки, видео-превью и сохранённые посты. После очистки они загрузятся заново.")
+                }
+
+                Section {
                     LabeledContent("Версия", value: appVersion)
                 } header: {
                     Text("О приложении")
                 } footer: {
-                    Text("Лента собирается из Telegram-каналов дважды в день. Без AI-выжимки — оригинальные посты.")
+                    Text("Живая лента из Telegram-каналов, сгруппированная по каналам. Без AI-выжимки — оригинальные посты.")
                 }
             }
             .navigationTitle("Настройки")
             .navigationBarTitleDisplayMode(.inline)
+            .task { cacheBytes = await CacheManager.totalSizeBytes() }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Готово") { dismiss() }

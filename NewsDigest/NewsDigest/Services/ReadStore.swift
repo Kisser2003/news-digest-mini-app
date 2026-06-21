@@ -8,6 +8,7 @@ import Observation
 final class ReadStore {
     private(set) var seen: Set<UUID> = []
     private let key = "seenPostIDs.v1"
+    private let seededKey = "didSeedInitialRead.v1"
 
     init() {
         if let arr = UserDefaults.standard.array(forKey: key) as? [String] {
@@ -16,6 +17,17 @@ final class ReadStore {
     }
 
     func isSeen(_ id: UUID) -> Bool { seen.contains(id) }
+
+    /// На самом первом запуске считаем уже существующие посты прочитанными —
+    /// иначе вся лента подсветилась бы как «Новое». Возвращает true, если засев
+    /// только что произошёл (значит ничего помечать «новым» в этой сессии не надо).
+    func seedIfNeeded(_ posts: [Post]) -> Bool {
+        guard !UserDefaults.standard.bool(forKey: seededKey) else { return false }
+        guard !posts.isEmpty else { return false }   // ждём, пока появятся посты
+        markSeen(posts)
+        UserDefaults.standard.set(true, forKey: seededKey)
+        return true
+    }
 
     func unreadCount(_ posts: [Post]) -> Int {
         posts.reduce(0) { $0 + (seen.contains($1.id) ? 0 : 1) }

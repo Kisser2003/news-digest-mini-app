@@ -5,20 +5,24 @@ struct ChannelScreen: View {
     let channel: String
     let posts: [Post]
 
+    @Environment(ReadStore.self) private var readStore
     private var info: ChannelInfo { ChannelInfo.of(channel) }
 
     var body: some View {
         ScrollView {
-            LazyVStack(spacing: 10) {
-                ForEach(posts) { post in
-                    PostCard(post: post)
+            GlassEffectContainer(spacing: 6) {
+                LazyVStack(spacing: 10) {
+                    ForEach(posts) { post in
+                        PostCard(post: post)
+                    }
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
         }
         .background(HeroBackground(tint: info.color))
         .navigationTitle(info.displayName)
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear { readStore.markSeen(posts) }
     }
 }
