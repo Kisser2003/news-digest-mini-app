@@ -28,8 +28,15 @@ final class FeedViewModel {
     private let repository: PostRepository
     private var refreshDebounce: Task<Void, Never>?
 
-    /// Порядок каналов в ленте.
-    private static let channelOrder = ["ateobreaking", "vcnews", "easy_qa_ru", "media_apple"]
+    /// Порядок и состав каналов (из ChannelStore). По умолчанию — дефолтные.
+    private var channelOrder: [String] = ChannelStore.defaults
+
+    /// Обновить список каналов (вызывается из FeedView, когда ChannelStore загрузился).
+    func setChannels(_ slugs: [String]) {
+        guard !slugs.isEmpty else { return }
+        channelOrder = slugs
+        rebuild()
+    }
 
     init(repository: PostRepository? = nil) {
         self.repository = repository ?? SupabasePostRepository()
@@ -74,10 +81,9 @@ final class FeedViewModel {
 
     /// Пересобрать кешированные группировки. Вызывается при смене данных/фильтра.
     private func rebuild() {
-        var seen: [String] = []
-        for p in allPosts where !seen.contains(p.channel) { seen.append(p.channel) }
-        allChannels = seen.sorted(by: Self.channelLess)
-        sections = Self.groupByChannel(visiblePosts)
+        allChannels = channelOrder
+        let visible = channelOrder.filter { !disabledChannels.contains($0.lowercased()) }
+        sections = Self.sections(for: visible, from: allPosts)
     }
 
     private var visiblePosts: [Post] {
@@ -102,7 +108,7 @@ final class FeedViewModel {
         let slug = channel.lowercased()
         if disabledChannels.contains(slug) { disabledChannels.remove(slug) }
         else { disabledChannels.insert(slug) }
-        sections = Self.groupByChannel(visiblePosts)
+        rebuild()
     }
 
     /// Все посты одного канала (по всем выпускам), новые сверху.
@@ -129,24 +135,14 @@ final class FeedViewModel {
 
     // MARK: Группировка
 
-    /// Сгруппировать посты по каналам; внутри секции — новые сверху,
-    /// секции — в порядке `channelOrder`.
-    static func groupByChannel(_ posts: [Post]) -> [ChannelGroup] {
-        Dictionary(grouping: posts, by: \.channel)
-            .map { channel, posts in
-                ChannelGroup(
-                    id: channel,
-                    channel: channel,
-                    posts: posts.sorted { $0.publishedAt > $1.publishedAt }
-                )
-            }
-            .sorted { channelLess($0.channel, $1.channel) }
-    }
-
-    /// Сортировка каналов по заданному порядку (неизвестные — в конец).
-    private static func channelLess(_ a: String, _ b: String) -> Bool {
-        let ia = channelOrder.firstIndex(of: a.lowercased()) ?? .max
-        let ib = channelOrder.firstIndex(of: b.lowercased()) ?? .max
-        return ia < ib
+    /// Секции по каждому каналу из списка (в его порядке). Пустые включаются —
+    /// добавленный канал виден сразу, ещё до первого фетча постов бэкендом.
+    static func sections(for slugs: [String], from posts: [Post]) -> [ChannelGroup] {
+        let byChannel = Dictionary(grouping: posts) { $0.channel.lowercased() }
+        return slugs.map { slug in
+            let key = slug.lowercased()
+            let channelPosts = (byChannel[key] ?? []).sorted { $0.publishedAt > $1.publishedAt }
+            return ChannelGroup(id: key, channel: channelPosts.first?.channel ?? slug, posts: channelPosts)
+        }
     }
 }

@@ -9,6 +9,7 @@ struct FeedView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(ThemeStore.self) private var theme
     @Environment(ReadStore.self) private var readStore
+    @Environment(ChannelStore.self) private var channelStore
 
     var body: some View {
         NavigationStack {
@@ -26,8 +27,13 @@ struct FeedView: View {
                 }
         }
         .task {
+            await channelStore.load()
+            viewModel.setChannels(channelStore.slugs)
             await viewModel.load()
             readStore.seedIfNeeded(viewModel.allPosts)
+        }
+        .onChange(of: channelStore.slugs) {
+            viewModel.setChannels(channelStore.slugs)
         }
         // Отдельная задача под realtime: токен меняется при возврате из фона →
         // подписка пересоздаётся (старый websocket мог отвалиться, пока свёрнуто).

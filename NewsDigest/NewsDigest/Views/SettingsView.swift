@@ -7,12 +7,12 @@ struct SettingsView: View {
     @Environment(NotificationManager.self) private var notifications
     @Environment(ReadStore.self) private var readStore
     @Environment(ThemeStore.self) private var theme
+    @Environment(ChannelStore.self) private var channelStore
     @Environment(\.dismiss) private var dismiss
 
     @State private var cacheBytes = 0
     @State private var isClearingCache = false
-
-    private let channels = ["Ateobreaking", "vcnews", "easy_qa_ru", "media_apple"]
+    @State private var newChannel = ""
 
     var body: some View {
         @Bindable var notifications = notifications
@@ -102,8 +102,8 @@ struct SettingsView: View {
                     }
                 }
 
-                Section("Каналы") {
-                    ForEach(channels, id: \.self) { channel in
+                Section {
+                    ForEach(channelStore.slugs, id: \.self) { channel in
                         let info = ChannelInfo.of(channel)
                         HStack(spacing: 10) {
                             Text(info.short)
@@ -111,13 +111,35 @@ struct SettingsView: View {
                                 .foregroundStyle(.white)
                                 .frame(width: 24, height: 24)
                                 .background(info.color, in: .circle)
-                            Text(info.displayName)
-                            Spacer()
-                            Text("@\(channel)")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(info.displayName)
+                                Text("@\(channel)")
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
+                    .onDelete { offsets in
+                        let removing = offsets.map { channelStore.slugs[$0] }
+                        Haptics.impact(.medium)
+                        Task { for slug in removing { await channelStore.remove(slug) } }
+                    }
+
+                    HStack {
+                        TextField("@канал или ссылка t.me/…", text: $newChannel)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .onSubmit { addChannel() }
+                        Button(action: addChannel) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 22))
+                        }
+                        .disabled(ChannelStore.normalize(newChannel) == nil)
+                    }
+                } header: {
+                    Text("Каналы")
+                } footer: {
+                    Text("Добавляй по @имени или ссылке t.me. Новые посты появятся в течение ~30 минут — бэкенд подтянет канал. Свайп влево — удалить.")
                 }
 
                 Section {
@@ -164,6 +186,14 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+
+    private func addChannel() {
+        guard ChannelStore.normalize(newChannel) != nil else { return }
+        let raw = newChannel
+        newChannel = ""
+        Haptics.success()
+        Task { await channelStore.add(raw) }
     }
 
     private var appVersion: String {
