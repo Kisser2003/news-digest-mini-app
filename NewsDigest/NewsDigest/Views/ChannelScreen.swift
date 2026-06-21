@@ -9,15 +9,19 @@ struct ChannelScreen: View {
     private var info: ChannelInfo { ChannelInfo.of(channel) }
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 10) {
-                ForEach(posts) { post in
-                    PostCard(post: post)
-                }
+        // List (UIKit-backed) вместо ScrollView+LazyVStack: корректно держит
+        // высоты ячеек и content-offset — нет «прыжков» прокрутки на длинной
+        // ленте с разновысокими карточками.
+        List {
+            ForEach(posts) { post in
+                PostCard(post: post)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
         .background(HeroBackground(tint: info.color))
         .navigationTitle(info.displayName)
         .navigationBarTitleDisplayMode(.inline)

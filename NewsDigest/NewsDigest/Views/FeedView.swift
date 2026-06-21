@@ -96,20 +96,21 @@ struct FeedView: View {
         }
     }
 
+    @ViewBuilder
     private var searchResultsList: some View {
-        ScrollView {
-            LazyVStack(spacing: 10) {
-                if viewModel.searchResults.isEmpty {
-                    ContentUnavailableView.search(text: viewModel.searchText)
-                        .padding(.top, 60)
-                } else {
-                    ForEach(viewModel.searchResults) { post in
-                        PostCard(post: post, showChannel: true)
-                    }
+        if viewModel.searchResults.isEmpty {
+            ContentUnavailableView.search(text: viewModel.searchText)
+        } else {
+            List {
+                ForEach(viewModel.searchResults) { post in
+                    PostCard(post: post, showChannel: true)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
         }
     }
 
