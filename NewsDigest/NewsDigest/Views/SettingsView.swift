@@ -12,7 +12,7 @@ struct SettingsView: View {
 
     @State private var cacheBytes = 0
     @State private var isClearingCache = false
-    @State private var newChannel = ""
+    @State private var showAddChannel = false
 
     var body: some View {
         @Bindable var notifications = notifications
@@ -125,21 +125,16 @@ struct SettingsView: View {
                         Task { for slug in removing { await channelStore.remove(slug) } }
                     }
 
-                    HStack {
-                        TextField("@канал или ссылка t.me/…", text: $newChannel)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .onSubmit { addChannel() }
-                        Button(action: addChannel) {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 22))
-                        }
-                        .disabled(ChannelStore.normalize(newChannel) == nil)
+                    Button {
+                        Haptics.selection()
+                        showAddChannel = true
+                    } label: {
+                        Label("Добавить канал", systemImage: "plus.circle.fill")
                     }
                 } header: {
                     Text("Каналы")
                 } footer: {
-                    Text("Добавляй по @имени или ссылке t.me. Новые посты появятся в течение ~30 минут — бэкенд подтянет канал. Свайп влево — удалить.")
+                    Text("Добавляй по @имени или ссылке t.me с именем и цветом. Новые посты появятся в течение ~30 минут — бэкенд подтянет канал. Свайп влево — удалить.")
                 }
 
                 Section {
@@ -185,20 +180,100 @@ struct SettingsView: View {
                     Button("Готово") { dismiss() }
                 }
             }
+            .sheet(isPresented: $showAddChannel) {
+                AddChannelSheet()
+            }
         }
-    }
-
-    private func addChannel() {
-        guard ChannelStore.normalize(newChannel) != nil else { return }
-        let raw = newChannel
-        newChannel = ""
-        Haptics.success()
-        Task { await channelStore.add(raw) }
     }
 
     private var appVersion: String {
         let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
         let b = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
         return "\(v) (\(b))"
+    }
+}
+
+/// Лист добавления канала: слаг + опциональное имя + выбор цвета, с превью.
+private struct AddChannelSheet: View {
+    @Environment(ChannelStore.self) private var channelStore
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var slug = ""
+    @State private var name = ""
+    @State private var colorHex = AddChannelSheet.palette[0]
+
+    static let palette = ["E0564F", "FF9F0A", "30B0C7", "1A9E8F",
+                          "0A84FF", "5E5CE6", "BF5AF2", "FF375F", "8E8E93"]
+
+    private var isValid: Bool { ChannelStore.normalize(slug) != nil }
+    private var previewName: String {
+        let n = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return n.isEmpty ? (ChannelStore.normalize(slug) ?? "Канал") : n
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Канал") {
+                    TextField("@имя или ссылка t.me/…", text: $slug)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    TextField("Название (необязательно)", text: $name)
+                }
+
+                Section("Цвет") {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 44))], spacing: 14) {
+                        ForEach(Self.palette, id: \.self) { hex in
+                            Circle()
+                                .fill(Color(hex: hex))
+                                .frame(width: 34, height: 34)
+                                .overlay {
+                                    if hex == colorHex {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 13, weight: .bold))
+                                            .foregroundStyle(.white)
+                                    }
+                                }
+                                .overlay {
+                                    Circle().stroke(.primary.opacity(hex == colorHex ? 0.3 : 0), lineWidth: 2)
+                                }
+                                .onTapGesture {
+                                    Haptics.selection()
+                                    colorHex = hex
+                                }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+
+                Section("Превью") {
+                    HStack(spacing: 10) {
+                        Text(ChannelInfo.shortLabel(previewName))
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 30, height: 30)
+                            .background(Color(hex: colorHex), in: .circle)
+                        Text(previewName)
+                        Spacer()
+                    }
+                }
+            }
+            .navigationTitle("Новый канал")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Отмена") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Добавить") {
+                        Haptics.success()
+                        let s = slug, n = name, c = colorHex
+                        Task { await channelStore.add(s, title: n, color: c) }
+                        dismiss()
+                    }
+                    .disabled(!isValid)
+                }
+            }
+        }
     }
 }
