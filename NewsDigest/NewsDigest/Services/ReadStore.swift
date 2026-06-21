@@ -40,8 +40,16 @@ final class ReadStore {
             seen.insert(p.id)
             changed = true
         }
-        if changed {
-            UserDefaults.standard.set(seen.map(\.uuidString), forKey: key)
+        if changed { persist() }
+    }
+
+    /// Сериализация и запись в UserDefaults — в фоне (на main это фризило при
+    /// заходе в канал, где помечается прочитанным сразу много постов).
+    private func persist() {
+        let snapshot = seen
+        let key = self.key
+        Task.detached(priority: .utility) {
+            UserDefaults.standard.set(snapshot.map(\.uuidString), forKey: key)
         }
     }
 

@@ -125,6 +125,7 @@ struct CachedImage<Content: View>: View {
 
     @Environment(\.displayScale) private var displayScale
     @State private var phase: AsyncImagePhase = .empty
+    @State private var loadedURL: URL?
 
     var body: some View {
         content(phase)
@@ -132,14 +133,16 @@ struct CachedImage<Content: View>: View {
     }
 
     private func load() async {
-        // Сброс: при переиспользовании ячейки (`.task(id: url)`) `phase` ещё хранит
-        // картинку прошлого url — без сброса показалась бы чужая.
+        // Тот же url уже показан (ячейка вернулась в кадр) — ничего не трогаем,
+        // без мигания. Сброс нужен только при смене url (переиспользование ячейки).
+        if loadedURL == url, case .success = phase { return }
         phase = .empty
         do {
             let image = try await ImageLoader.shared.image(
                 for: url, maxPixel: targetWidth * displayScale
             )
             phase = .success(Image(uiImage: image))
+            loadedURL = url
         } catch {
             if !Task.isCancelled { phase = .failure(error) }
         }

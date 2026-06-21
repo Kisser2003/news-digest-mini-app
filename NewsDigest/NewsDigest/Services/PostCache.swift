@@ -10,7 +10,11 @@ enum PostCache {
 
     static func save(_ posts: [Post]) {
         guard let data = try? JSONEncoder().encode(posts) else { return }
-        try? data.write(to: fileURL, options: .atomic)
+        let url = fileURL
+        // Запись на диск — в фоне, чтобы не блокировать главный поток на refresh.
+        Task.detached(priority: .utility) {
+            try? data.write(to: url, options: .atomic)
+        }
     }
 
     static func load() -> [Post] {

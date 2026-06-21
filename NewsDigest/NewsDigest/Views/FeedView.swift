@@ -133,7 +133,7 @@ struct FeedView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .animation(.smooth, value: viewModel.sections)
+            .animation(.smooth, value: viewModel.allChannels)
         }
         .refreshable {
             await viewModel.refresh()
