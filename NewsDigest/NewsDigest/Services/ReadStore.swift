@@ -53,6 +53,15 @@ final class ReadStore {
         }
     }
 
+    /// Оставить в «прочитанном» только id из текущих постов — иначе набор
+    /// растёт бесконечно (приложение всё равно показывает только последние ~300).
+    func prune(to ids: Set<UUID>) {
+        let trimmed = seen.intersection(ids)
+        guard trimmed.count != seen.count else { return }
+        seen = trimmed
+        persist()
+    }
+
     func reset() {
         seen.removeAll()
         UserDefaults.standard.removeObject(forKey: key)

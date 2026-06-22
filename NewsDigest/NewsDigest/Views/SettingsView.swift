@@ -55,6 +55,13 @@ struct SettingsView: View {
                         }
                     }
                     .padding(.vertical, 2)
+
+                    Picker("Размер текста", selection: $theme.textSize) {
+                        ForEach(TextSize.allCases) { size in
+                            Text(size.label).tag(size)
+                        }
+                    }
+                    .pickerStyle(.segmented)
                 }
 
                 Section("Напоминания") {

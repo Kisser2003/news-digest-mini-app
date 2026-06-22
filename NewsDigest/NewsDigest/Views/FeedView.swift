@@ -31,6 +31,7 @@ struct FeedView: View {
             viewModel.setChannels(channelStore.slugs)
             await viewModel.load()
             readStore.seedIfNeeded(viewModel.allPosts)
+            readStore.prune(to: Set(viewModel.allPosts.map(\.id)))
         }
         .onChange(of: channelStore.slugs) {
             viewModel.setChannels(channelStore.slugs)
@@ -156,11 +157,7 @@ private struct ChannelRow: View {
     var body: some View {
         NavigationLink(value: ChannelRoute(channel: group.channel)) {
             HStack(spacing: 12) {
-                Text(group.info.short)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 44, height: 44)
-                    .background(group.info.color, in: .circle)
+                ChannelAvatar(channel: group.channel, info: group.info)
 
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 8) {
@@ -208,6 +205,45 @@ private struct ChannelRow: View {
         case .video: return "🎬 Видео"
         case .image: return "🖼 Фото"
         case .none:  return "—"
+        }
+    }
+}
+
+/// Аватарка канала из Telegram (через прокси `tg.i-c-a.su/icon/<slug>/icon.jpg`).
+/// Пока грузится / если фото нет — цветной бейдж с буквами (как раньше).
+private struct ChannelAvatar: View {
+    let channel: String
+    let info: ChannelInfo
+
+    private var url: URL? {
+        URL(string: "https://tg.i-c-a.su/icon/\(channel)/icon.jpg")
+    }
+
+    var body: some View {
+        Group {
+            if let url {
+                CachedImage(url: url, targetWidth: 44) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    default:
+                        badge
+                    }
+                }
+            } else {
+                badge
+            }
+        }
+        .frame(width: 44, height: 44)
+        .clipShape(.circle)
+    }
+
+    private var badge: some View {
+        ZStack {
+            info.color
+            Text(info.short)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(.white)
         }
     }
 }

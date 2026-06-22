@@ -7,6 +7,7 @@ struct PostCard: View {
     var isNew: Bool = false
 
     @Environment(\.openURL) private var openURL
+    @Environment(ThemeStore.self) private var theme
     @State private var zoom: ZoomImage?
     @State private var playingVideo: PlayingVideo?
 
@@ -36,7 +37,7 @@ struct PostCard: View {
 
             if post.hasText {
                 Text(post.text ?? "")
-                    .font(.system(size: 15))
+                    .font(.system(size: 15 * theme.textSize.scale))
                     .lineSpacing(3)
                     .foregroundStyle(.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)

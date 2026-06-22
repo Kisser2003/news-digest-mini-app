@@ -49,23 +49,48 @@ enum AccentTheme: String, CaseIterable, Identifiable {
     }
 }
 
+/// Размер текста постов (множитель к базовым кеглям).
+enum TextSize: String, CaseIterable, Identifiable {
+    case compact, normal, large, xlarge
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .compact: return "S"
+        case .normal:  return "M"
+        case .large:   return "L"
+        case .xlarge:  return "XL"
+        }
+    }
+    var scale: CGFloat {
+        switch self {
+        case .compact: return 0.9
+        case .normal:  return 1.0
+        case .large:   return 1.15
+        case .xlarge:  return 1.3
+        }
+    }
+}
+
 /// Хранилище настроек оформления (UserDefaults).
 @MainActor
 @Observable
 final class ThemeStore {
     var appearance: AppearanceMode { didSet { save() } }
     var accent: AccentTheme { didSet { save() } }
+    var textSize: TextSize { didSet { save() } }
 
     init() {
         let d = UserDefaults.standard
         appearance = AppearanceMode(rawValue: d.string(forKey: "appearance") ?? "") ?? .system
         accent = AccentTheme(rawValue: d.string(forKey: "accent") ?? "") ?? .blue
+        textSize = TextSize(rawValue: d.string(forKey: "textSize") ?? "") ?? .normal
     }
 
     private func save() {
         let d = UserDefaults.standard
         d.set(appearance.rawValue, forKey: "appearance")
         d.set(accent.rawValue, forKey: "accent")
+        d.set(textSize.rawValue, forKey: "textSize")
     }
 }
 
